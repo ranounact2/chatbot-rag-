@@ -24,16 +24,43 @@ def _decouper(texte: str, taille: int, chevauchement: int) -> Iterable[str]:
     if chevauchement < 0 or chevauchement >= taille:
         raise ValueError("Le chevauchement doit être compris entre 0 et taille-1.")
 
-    pas = taille - chevauchement
     debut = 0
     while debut < len(texte):
         fin = min(debut + taille, len(texte))
+        if fin < len(texte):
+            fin = _fin_propre(texte, debut, fin)
         morceau = texte[debut:fin].strip()
         if morceau:
             yield morceau
         if fin == len(texte):
             break
-        debut += pas
+        # Le chunk suivant reprend `chevauchement` caractères avant la
+        # coupure, mais commence toujours au début d'un mot.
+        prochain = max(fin - chevauchement, debut + 1)
+        candidat = prochain
+        # Recherche bornée à `fin` : sans espace, on garde la coupure brute
+        # plutôt que de sauter le reste du texte.
+        while candidat < fin and not texte[candidat - 1].isspace():
+            candidat += 1
+        if candidat < fin:
+            prochain = candidat
+        debut = prochain
+
+
+def _fin_propre(texte: str, debut: int, fin: int) -> int:
+    """Recule `fin` jusqu'à une coupure naturelle (ligne, phrase, mot).
+
+    On ne recule que dans la seconde moitié de la fenêtre, pour que les
+    chunks gardent une taille proche de la cible. Sans coupure trouvée, la
+    coupure brute est conservée.
+    """
+
+    plancher = debut + (fin - debut) // 2
+    for separateur in ("\n", ". ", " "):
+        position = texte.rfind(separateur, plancher, fin)
+        if position != -1:
+            return position + len(separateur)
+    return fin
 
 
 def chunker_textes(

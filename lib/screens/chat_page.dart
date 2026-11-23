@@ -633,8 +633,11 @@ class _ChatPageState extends State<ChatPage> {
         images: _extractImages(decoded['images']),
       );
     } catch (_) {
+      // Ne plus faire semblant de répondre : une vraie réponse d'erreur
+      // permet de voir que le serveur est en cause, pas la question.
       return _BotReply(
-        text: '${_getBotResponse(question)}\n\n(mode hors ligne)',
+        text: 'Le serveur ne répond pas pour le moment. '
+            'Vérifiez votre connexion et réessayez dans un instant.',
       );
     }
   }
